@@ -72,6 +72,16 @@ func findParam(parts []param, name string) *param {
 	return nil
 }
 
+func findParams(parts []param, name string) []param {
+	var out []param
+	for _, p := range parts {
+		if p.Name == name {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
 func TestIntegration(t *testing.T) {
 	mux := NewMux()
 	ts := httptest.NewServer(mux)
@@ -93,7 +103,7 @@ func TestIntegration(t *testing.T) {
 				{Name: "expression", ValueString: ptrStr("Patient.name.given.first()")},
 				{Name: "resource", Resource: map[string]any{"resourceType": "Patient", "name": []any{map[string]any{"given": []string{"Alice", "B."}, "family": "Smith"}}}},
 			}},
-			wantEval:     "Go fhir-toolbox-go (R4)",
+			wantEval:     "fhir-toolbox-go (R4)",
 			wantContains: []string{"Alice"},
 		},
 		{
@@ -104,7 +114,7 @@ func TestIntegration(t *testing.T) {
 				{Name: "context", ValueString: ptrStr("name")},
 				{Name: "resource", Resource: map[string]any{"resourceType": "Patient", "name": []any{map[string]any{"given": []string{"Alice", "B."}}, map[string]any{"given": []string{"Jim"}}}}},
 			}},
-			wantEval:     "Go fhir-toolbox-go (R4)",
+			wantEval:     "fhir-toolbox-go (R4)",
 			wantContains: []string{"Alice", "Jim"},
 		},
 		{
@@ -115,7 +125,7 @@ func TestIntegration(t *testing.T) {
 				{Name: "variables", Part: []param{{Name: "v", ValueString: ptrStr("testMe")}}},
 				{Name: "resource", Resource: map[string]any{"resourceType": "Patient"}},
 			}},
-			wantEval:     "Go fhir-toolbox-go (R4)",
+			wantEval:     "fhir-toolbox-go (R4)",
 			wantContains: []string{"testMe"},
 		},
 		{
@@ -128,7 +138,7 @@ func TestIntegration(t *testing.T) {
 					ValueString *string `json:"valueString,omitempty"`
 				}{{Url: "http:/.forms-lab.com/StructureDefinition/json-value", ValueString: ptrStr(patientJSON)}}},
 			}},
-			wantEval:     "Go fhir-toolbox-go (R4)",
+			wantEval:     "fhir-toolbox-go (R4)",
 			wantContains: []string{"Alice"},
 		},
 		{
@@ -138,7 +148,7 @@ func TestIntegration(t *testing.T) {
 				{Name: "expression", ValueString: ptrStr("1 = 1")},
 				{Name: "resource", Resource: map[string]any{"resourceType": "Patient"}},
 			}},
-			wantEval: "Go fhir-toolbox-go (R4B)",
+			wantEval: "fhir-toolbox-go (R4B)",
 		},
 		{
 			name: "R5 eval label",
@@ -147,7 +157,7 @@ func TestIntegration(t *testing.T) {
 				{Name: "expression", ValueString: ptrStr("1 = 1")},
 				{Name: "resource", Resource: map[string]any{"resourceType": "Patient"}},
 			}},
-			wantEval: "Go fhir-toolbox-go (R5)",
+			wantEval: "fhir-toolbox-go (R5)",
 		},
 	}
 
@@ -164,30 +174,70 @@ func TestIntegration(t *testing.T) {
 			}
 			eval := findParam(paramsPart.Part, "evaluator")
 			if eval == nil || eval.ValueString == nil || *eval.ValueString != tc.wantEval {
-				t.Fatalf("evaluator mismatch: %#v", eval)
+				gotVal := "<nil>"
+				if eval != nil && eval.ValueString != nil {
+					gotVal = *eval.ValueString
+				}
+				t.Fatalf("evaluator mismatch: got=%q want=%q", gotVal, tc.wantEval)
 			}
-			// expected values
+			// expected values across all result entries
 			if len(tc.wantContains) > 0 {
-				res := findParam(got.Parameter, "result")
-				if res == nil {
+				results := findParams(got.Parameter, "result")
+				if len(results) == 0 {
 					t.Fatalf("result missing")
 				}
 				found := 0
-				for _, p := range res.Part {
-					if p.Name == "string" && p.ValueString != nil {
-						for _, want := range tc.wantContains {
-							if *p.ValueString == want {
-								found++
+				for _, res := range results {
+					for _, p := range res.Part {
+						if p.Name == "string" && p.ValueString != nil {
+							for _, want := range tc.wantContains {
+								if *p.ValueString == want {
+									found++
+								}
 							}
 						}
 					}
 				}
 				if found == 0 {
-					t.Fatalf("expected to find values %v in result", tc.wantContains)
+					t.Fatalf("expected to find values %v in any result", tc.wantContains)
 				}
 			}
 		})
 	}
+}
+
+func TestTraceParts(t *testing.T) {
+	mux := NewMux()
+	ts := httptest.NewServer(mux)
+	defer ts.Close()
+
+	body := parameters{ResourceType: "Parameters", Parameter: []param{
+		{Name: "expression", ValueString: ptrStr("trace('trc').given.first()")},
+		{Name: "context", ValueString: ptrStr("name")},
+		{Name: "resource", Resource: map[string]any{"resourceType": "Patient", "name": []any{map[string]any{"given": []string{"Alice", "B."}, "family": "Smith"}, map[string]any{"given": []string{"Jim"}}}}},
+	}}
+
+	got := postJSON(t, ts, "/$fhirpath", body)
+	if got.ResourceType != "Parameters" {
+		t.Fatalf("unexpected resourceType: %s", got.ResourceType)
+	}
+	// Verify at least one trace part exists with label 'trc'
+	results := findParams(got.Parameter, "result")
+	if len(results) == 0 {
+		t.Fatalf("result missing")
+	}
+	foundTrace := false
+	for _, res := range results {
+		for _, p := range res.Part {
+			if p.Name == "trace" && p.ValueString != nil && *p.ValueString == "trc" {
+				foundTrace = true
+			}
+		}
+	}
+	if !foundTrace {
+		t.Fatalf("expected at least one trace part with valueString 'trc'")
+	}
+	// No debug-trace expected for now
 }
 
 func ptrStr(s string) *string { return &s }

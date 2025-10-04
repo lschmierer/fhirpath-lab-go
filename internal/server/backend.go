@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	fhirpath "github.com/DAMEDIC/fhir-toolbox-go/fhirpath"
 	"github.com/DAMEDIC/fhir-toolbox-go/model"
 	"github.com/DAMEDIC/fhir-toolbox-go/model/gen/basic"
@@ -17,6 +18,20 @@ type Backend struct {
 	// building canonical OperationDefinition URLs. If empty, defaults to
 	// "http://localhost".
 	BaseURL string
+}
+
+// fpTracer captures trace() calls during FHIRPath evaluation
+type fpTracer struct {
+	entries []traceEntry
+}
+type traceEntry struct {
+	name   string
+	values fhirpath.Collection
+}
+
+func (t *fpTracer) Log(name string, collection fhirpath.Collection) error {
+	t.entries = append(t.entries, traceEntry{name: name, values: append(fhirpath.Collection(nil), collection...)})
+	return nil
 }
 
 // CapabilityBase implements capabilities.ConcreteCapabilities for discovery and operation wiring.
@@ -217,17 +232,17 @@ func (b *Backend) evalFHIRPathCommon(ctx context.Context, code string, parameter
 
 	// Variables
 	varsParam, _ := findParamBasic(parameters.Parameter, "variables")
-	// Prepare evaluation context
-	evCtx := r4.Context()
-	evCtx = fhirpath.WithEnv(evCtx, "resource", resourceElem.(fhirpath.Element))
-	evCtx = fhirpath.WithEnv(evCtx, "rootResource", resourceElem.(fhirpath.Element))
+	// Prepare evaluation context prototype
+	baseCtx := r4.Context()
+	baseCtx = fhirpath.WithEnv(baseCtx, "resource", resourceElem.(fhirpath.Element))
+	baseCtx = fhirpath.WithEnv(baseCtx, "rootResource", resourceElem.(fhirpath.Element))
 
 	// Support variables shape: either parts with arbitrary names or name/value[x] pairs
 	for _, vp := range varsParam.Part {
 		// case 1: arbitrary name
 		if vp.Name.Value != nil && vp.Value != nil {
 			if s, okS, _ := vp.Value.ToString(false); okS {
-				evCtx = fhirpath.WithEnv(evCtx, *vp.Name.Value, fhirpath.String(s))
+				baseCtx = fhirpath.WithEnv(baseCtx, *vp.Name.Value, fhirpath.String(s))
 			}
 			continue
 		}
@@ -249,7 +264,7 @@ func (b *Backend) evalFHIRPathCommon(ctx context.Context, code string, parameter
 			}
 		}
 		if haveName && varVal != nil {
-			evCtx = fhirpath.WithEnv(evCtx, varName, fhirpath.String(*varVal))
+			baseCtx = fhirpath.WithEnv(baseCtx, varName, fhirpath.String(*varVal))
 		}
 	}
 
@@ -259,46 +274,75 @@ func (b *Backend) evalFHIRPathCommon(ctx context.Context, code string, parameter
 		return basic.Parameters{}, opErr("fatal", "processing", "expression parse error: "+err.Error())
 	}
 
-	var resultParts []basic.ParametersParameter
+	out := basic.Parameters{}
 	if strings.TrimSpace(contextExprStr) != "" {
 		// Evaluate context expression on the resource
 		ctxExpr, err := fhirpath.Parse(contextExprStr)
 		if err != nil {
 			return basic.Parameters{}, opErr("fatal", "processing", "context parse error: "+err.Error())
 		}
-		ctxItems, err := fhirpath.Evaluate(evCtx, resourceElem.(fhirpath.Element), ctxExpr)
+		ctxItems, err := fhirpath.Evaluate(baseCtx, resourceElem.(fhirpath.Element), ctxExpr)
 		if err != nil {
 			return basic.Parameters{}, opErr("fatal", "processing", "context evaluation error: "+err.Error())
 		}
-		// Evaluate main expression for each context item and aggregate string results
-		for _, item := range ctxItems {
+		// Evaluate main expression for each context item and build separate result entries
+		for i, item := range ctxItems {
+			// Create tracer per context
+			tracer := &fpTracer{}
+			evCtx := fhirpath.WithTracer(baseCtx, tracer)
 			val, err := fhirpath.Evaluate(evCtx, item, exprParsed)
 			if err != nil {
 				return basic.Parameters{}, opErr("fatal", "processing", "evaluation error: "+err.Error())
 			}
-			resultParts = append(resultParts, buildResultStringParts(val)...)
+			// Build a result parameter for this context
+			resName := "result"
+			// valueString: context[index]
+			vs := contextExprStr + "[" + fmt.Sprintf("%d", i) + "]"
+			resParam := basic.ParametersParameter{
+				Name:  basic.String{Value: &resName},
+				Value: basic.String{Value: &vs},
+				Part:  buildResultStringParts(val),
+			}
+			// Append trace parts
+			for _, te := range tracer.entries {
+				tname := "trace"
+				label := te.name
+				tr := basic.ParametersParameter{Name: basic.String{Value: &tname}, Value: basic.String{Value: &label}} // valueString is label
+				// add traced values as child parts
+				tr.Part = append(tr.Part, makeTraceParts(te.values)...)
+				resParam.Part = append(resParam.Part, tr)
+			}
+			out.Parameter = append(out.Parameter, resParam)
+			// debug-trace intentionally omitted for now
 		}
 	} else {
 		// Evaluate directly on the resource
+		tracer := &fpTracer{}
+		evCtx := fhirpath.WithTracer(baseCtx, tracer)
 		val, err := fhirpath.Evaluate(evCtx, resourceElem.(fhirpath.Element), exprParsed)
 		if err != nil {
 			return basic.Parameters{}, opErr("fatal", "processing", "evaluation error: "+err.Error())
 		}
-		resultParts = buildResultStringParts(val)
+		res := basic.ParametersParameter{Name: basic.String{Value: ptr.To("result")}, Part: buildResultStringParts(val)}
+		// Append trace parts
+		for _, te := range tracer.entries {
+			tname := "trace"
+			label := te.name
+			tr := basic.ParametersParameter{Name: basic.String{Value: &tname}, Value: basic.String{Value: &label}}
+			tr.Part = append(tr.Part, makeTraceParts(te.values)...)
+			res.Part = append(res.Part, tr)
+		}
+		out.Parameter = append(out.Parameter, res)
+		// debug-trace intentionally omitted for now
 	}
 
-	// Build output Parameters
-	out := basic.Parameters{}
 	// parameters part
 	var paramsPart basic.ParametersParameter
 	paramsPart.Name = basic.String{Value: ptr.To("parameters")}
 	// evaluator label differs by op code
-	evalLabel := "Go fhir-toolbox-go (R4)"
-	switch code {
-	case "fhirpath-r4b":
-		evalLabel = "Go fhir-toolbox-go (R4B)"
-	case "fhirpath-r5":
-		evalLabel = "Go fhir-toolbox-go (R5)"
+	evalLabel := "fhir-toolbox-go (R4)"
+	if code != "fhirpath" {
+		evalLabel = fmt.Sprintf("fhir-toolbox-go (%s)", strings.ToUpper(strings.TrimPrefix(code, "fhirpath-")))
 	}
 	paramsPart.Part = append(paramsPart.Part, basic.ParametersParameter{Name: basic.String{Value: ptr.To("evaluator")}, Value: basic.String{Value: &evalLabel}})
 	// echo expression
@@ -324,10 +368,6 @@ func (b *Backend) evalFHIRPathCommon(ctx context.Context, code string, parameter
 		paramsPart.Part = append(paramsPart.Part, basic.ParametersParameter{Name: basic.String{Value: &vname}, Part: varParts})
 	}
 	out.Parameter = append(out.Parameter, paramsPart)
-
-	// result part
-	res := basic.ParametersParameter{Name: basic.String{Value: ptr.To("result")}, Part: resultParts}
-	out.Parameter = append(out.Parameter, res)
 	return out, nil
 }
 
@@ -385,6 +425,43 @@ func buildResultStringParts(values fhirpath.Collection) []basic.ParametersParame
 				Value: basic.String{Value: &sv},
 			})
 		}
+	}
+	return parts
+}
+
+func typeNameOf(e fhirpath.Element) string {
+	if ti := e.TypeInfo(); ti != nil {
+		if q, ok := ti.QualifiedName(); ok && q.Name != "" {
+			return q.Name
+		}
+	}
+	return "Element"
+}
+
+func makeTraceParts(values fhirpath.Collection) []basic.ParametersParameter {
+	var parts []basic.ParametersParameter
+	for _, v := range values {
+		// Try primitive string conversion first
+		if s, ok, err := v.ToString(false); err == nil && ok {
+			n := "string"
+			sv := string(s)
+			parts = append(parts, basic.ParametersParameter{
+				Name:  basic.String{Value: &n},
+				Value: basic.String{Value: &sv},
+			})
+			continue
+		}
+		// Fallback: complex value via json-value extension
+		n := typeNameOf(v)
+		jsonStr := v.String()
+		extURL := "http://fhir.forms-lab.com/StructureDefinition/json-value"
+		parts = append(parts, basic.ParametersParameter{
+			Name: basic.String{Value: &n},
+			Extension: []basic.Extension{{
+				Url:   extURL,
+				Value: basic.String{Value: &jsonStr},
+			}},
+		})
 	}
 	return parts
 }
