@@ -1,0 +1,41 @@
+# flyctl launch added from .gitignore
+# OS junk
+**/.DS_Store
+
+# IDE/editor
+**/.idea
+**/.vscode
+**/*.iml
+
+# Go build artifacts
+**/*.exe
+**/*.exe~
+**/*.dll
+**/*.so
+**/*.dylib
+**/*.test
+**/*.out
+
+# Binaries
+bin
+build
+dist
+
+# Coverage
+**/coverage.out
+
+# Logs and temp
+**/*.log
+**/tmp
+**/.env
+
+# flyctl launch added from .idea/.gitignore
+# Default ignored files
+.idea/shelf
+.idea/workspace.xml
+# Editor-based HTTP Client requests
+.idea/httpRequests
+# Datasource local storage ignored files
+.idea/dataSources
+.idea/dataSources.local.xml
+fly.toml
