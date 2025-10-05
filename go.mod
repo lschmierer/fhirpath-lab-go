@@ -1,4 +1,4 @@
-module fhirpath-lab-go-server
+module fhirpath-lab-go
 
 go 1.23.0
 

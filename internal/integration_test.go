@@ -1,8 +1,11 @@
-package server
+package internal
 
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/DAMEDIC/fhir-toolbox-go/model"
+	"github.com/DAMEDIC/fhir-toolbox-go/rest"
+	"github.com/DAMEDIC/fhir-toolbox-go/utils/ptr"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -22,22 +25,6 @@ type param struct {
 type parameters struct {
 	ResourceType string  `json:"resourceType"`
 	Parameter    []param `json:"parameter"`
-}
-
-func makeR4ResourcePatientAliceJSON(t *testing.T) string {
-	t.Helper()
-	r := map[string]any{
-		"resourceType": "Patient",
-		"name": []any{
-			map[string]any{"given": []string{"Alice", "B."}, "family": "Smith"},
-			map[string]any{"given": []string{"Jim"}},
-		},
-	}
-	cr := map[string]any{"resourceType": "Parameters", "parameter": []any{}}
-	_ = cr
-	b, _ := json.Marshal(map[string]any{"resourceType": "Patient", "name": r["name"]})
-	// wrap as ContainedResource shape is not strictly required for this test path
-	return string(b)
 }
 
 func postJSON(t *testing.T, ts *httptest.Server, path string, body any) parameters {
@@ -83,11 +70,8 @@ func findParams(parts []param, name string) []param {
 }
 
 func TestIntegration(t *testing.T) {
-	mux := NewMux()
-	ts := httptest.NewServer(mux)
+	ts := httptest.NewServer(&rest.Server[model.R4]{Backend: &Backend{BaseURL: ""}})
 	defer ts.Close()
-
-	patientJSON := makeR4ResourcePatientAliceJSON(t)
 
 	tests := []struct {
 		name         string
@@ -100,7 +84,7 @@ func TestIntegration(t *testing.T) {
 			name: "R4 simple",
 			path: "/$fhirpath",
 			body: parameters{ResourceType: "Parameters", Parameter: []param{
-				{Name: "expression", ValueString: ptrStr("Patient.name.given.first()")},
+				{Name: "expression", ValueString: ptr.To("Patient.name.given.first()")},
 				{Name: "resource", Resource: map[string]any{"resourceType": "Patient", "name": []any{map[string]any{"given": []string{"Alice", "B."}, "family": "Smith"}}}},
 			}},
 			wantEval:     "fhir-toolbox-go (R4)",
@@ -110,8 +94,8 @@ func TestIntegration(t *testing.T) {
 			name: "R4 context",
 			path: "/$fhirpath",
 			body: parameters{ResourceType: "Parameters", Parameter: []param{
-				{Name: "expression", ValueString: ptrStr("given.first()")},
-				{Name: "context", ValueString: ptrStr("name")},
+				{Name: "expression", ValueString: ptr.To("given.first()")},
+				{Name: "context", ValueString: ptr.To("name")},
 				{Name: "resource", Resource: map[string]any{"resourceType": "Patient", "name": []any{map[string]any{"given": []string{"Alice", "B."}}, map[string]any{"given": []string{"Jim"}}}}},
 			}},
 			wantEval:     "fhir-toolbox-go (R4)",
@@ -121,32 +105,27 @@ func TestIntegration(t *testing.T) {
 			name: "R4 variables",
 			path: "/$fhirpath",
 			body: parameters{ResourceType: "Parameters", Parameter: []param{
-				{Name: "expression", ValueString: ptrStr("%v")},
-				{Name: "variables", Part: []param{{Name: "v", ValueString: ptrStr("testMe")}}},
+				{Name: "expression", ValueString: ptr.To("%v")},
+				{Name: "variables", Part: []param{{Name: "v", ValueString: ptr.To("testMe")}}},
 				{Name: "resource", Resource: map[string]any{"resourceType": "Patient"}},
 			}},
 			wantEval:     "fhir-toolbox-go (R4)",
 			wantContains: []string{"testMe"},
 		},
 		{
-			name: "R4 resource via extension",
-			path: "/$fhirpath",
-			body: parameters{ResourceType: "Parameters", Parameter: []param{
-				{Name: "expression", ValueString: ptrStr("Patient.name.given.first()")},
-				{Name: "resource", Extension: []struct {
-					Url         string  `json:"url"`
-					ValueString *string `json:"valueString,omitempty"`
-				}{{Url: "http:/.forms-lab.com/StructureDefinition/json-value", ValueString: ptrStr(patientJSON)}}},
-			}},
-			wantEval:     "fhir-toolbox-go (R4)",
-			wantContains: []string{"Alice"},
-		},
-		{
 			name: "R4B eval label",
 			path: "/$fhirpath-r4b",
 			body: parameters{ResourceType: "Parameters", Parameter: []param{
-				{Name: "expression", ValueString: ptrStr("1 = 1")},
-				{Name: "resource", Resource: map[string]any{"resourceType": "Patient"}},
+				{Name: "expression", ValueString: ptr.To("1 = 1")},
+				{Name: "resource", Extension: []struct {
+					Url         string  `json:"url"`
+					ValueString *string `json:"valueString,omitempty"`
+				}{
+					{
+						Url:         "http://fhir.forms-lab.com/StructureDefinition/json-value",
+						ValueString: ptr.To(`{"resourceType":"Patient"}`),
+					},
+				}},
 			}},
 			wantEval: "fhir-toolbox-go (R4B)",
 		},
@@ -154,8 +133,16 @@ func TestIntegration(t *testing.T) {
 			name: "R5 eval label",
 			path: "/$fhirpath-r5",
 			body: parameters{ResourceType: "Parameters", Parameter: []param{
-				{Name: "expression", ValueString: ptrStr("1 = 1")},
-				{Name: "resource", Resource: map[string]any{"resourceType": "Patient"}},
+				{Name: "expression", ValueString: ptr.To("1 = 1")},
+				{Name: "resource", Extension: []struct {
+					Url         string  `json:"url"`
+					ValueString *string `json:"valueString,omitempty"`
+				}{
+					{
+						Url:         "http://fhir.forms-lab.com/StructureDefinition/json-value",
+						ValueString: ptr.To(`{"resourceType":"Patient"}`),
+					},
+				}},
 			}},
 			wantEval: "fhir-toolbox-go (R5)",
 		},
@@ -207,13 +194,12 @@ func TestIntegration(t *testing.T) {
 }
 
 func TestTraceParts(t *testing.T) {
-	mux := NewMux()
-	ts := httptest.NewServer(mux)
+	ts := httptest.NewServer(&rest.Server[model.R4]{Backend: &Backend{BaseURL: ""}})
 	defer ts.Close()
 
 	body := parameters{ResourceType: "Parameters", Parameter: []param{
-		{Name: "expression", ValueString: ptrStr("trace('trc').given.first()")},
-		{Name: "context", ValueString: ptrStr("name")},
+		{Name: "expression", ValueString: ptr.To("trace('trc').given.first()")},
+		{Name: "context", ValueString: ptr.To("name")},
 		{Name: "resource", Resource: map[string]any{"resourceType": "Patient", "name": []any{map[string]any{"given": []string{"Alice", "B."}, "family": "Smith"}, map[string]any{"given": []string{"Jim"}}}}},
 	}}
 
@@ -240,4 +226,72 @@ func TestTraceParts(t *testing.T) {
 	// No debug-trace expected for now
 }
 
-func ptrStr(s string) *string { return &s }
+func TestJsonValueExtension(t *testing.T) {
+	ts := httptest.NewServer(&rest.Server[model.R4]{Backend: &Backend{BaseURL: ""}})
+	defer ts.Close()
+
+	// Test expression that returns a resource (Patient) that should be in json-value extension
+	// Resources don't implement ParametersParameterValue so they must use json-value extension
+	body := parameters{ResourceType: "Parameters", Parameter: []param{
+		{Name: "expression", ValueString: ptr.To("Bundle.entry.resource.ofType(Patient)")},
+		{Name: "resource", Resource: map[string]any{
+			"resourceType": "Bundle",
+			"type":         "collection",
+			"entry": []any{
+				map[string]any{
+					"resource": map[string]any{
+						"resourceType": "Patient",
+						"id":           "example",
+						"name": []any{
+							map[string]any{"given": []string{"Alice"}, "family": "Smith"},
+						},
+					},
+				},
+			},
+		}},
+	}}
+
+	got := postJSON(t, ts, "/$fhirpath", body)
+	if got.ResourceType != "Parameters" {
+		t.Fatalf("unexpected resourceType: %s", got.ResourceType)
+	}
+
+	// Find the result parameter
+	results := findParams(got.Parameter, "result")
+	if len(results) == 0 {
+		t.Fatalf("result missing")
+	}
+
+	// Look for a part with name "Patient" that has json-value extension
+	foundJsonValue := false
+	for _, res := range results {
+		for _, p := range res.Part {
+			if p.Name == "Patient" {
+				// Check that it has the json-value extension (resources can't go in value[x])
+				for _, ext := range p.Extension {
+					if ext.Url == "http://fhir.forms-lab.com/StructureDefinition/json-value" {
+						if ext.ValueString != nil && *ext.ValueString != "" {
+							foundJsonValue = true
+							// Verify it's valid JSON containing the Patient data
+							var patient map[string]any
+							if err := json.Unmarshal([]byte(*ext.ValueString), &patient); err != nil {
+								t.Fatalf("json-value extension contains invalid JSON: %v", err)
+							}
+							// Verify it has expected Patient fields
+							if id, ok := patient["id"].(string); !ok || id != "example" {
+								t.Fatalf("expected id=example in Patient, got: %v", patient)
+							}
+							if rt, ok := patient["resourceType"].(string); !ok || rt != "Patient" {
+								t.Fatalf("expected resourceType=Patient, got: %v", patient)
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	if !foundJsonValue {
+		t.Fatalf("expected Patient result to have json-value extension")
+	}
+}
