@@ -273,6 +273,11 @@ func evalFHIRPath[R model.Release](ctx context.Context, inputs evalInputs) evalR
 		ctx = fhirpath.WithEnv(ctx, name, value)
 	}
 
+	// If the expression is empty, don't attempt to parse/evaluate; return no results.
+	if strings.TrimSpace(inputs.expression) == "" {
+		return evalResult{results: nil}
+	}
+
 	// Parse expressions
 	exprParsed, err := fhirpath.Parse(inputs.expression)
 	if err != nil {
