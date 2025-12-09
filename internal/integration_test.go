@@ -3,9 +3,9 @@ package internal
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/DAMEDIC/fhir-toolbox-go/model"
-	"github.com/DAMEDIC/fhir-toolbox-go/rest"
-	"github.com/DAMEDIC/fhir-toolbox-go/utils/ptr"
+	"github.com/damedic/fhir-toolbox-go/model"
+	"github.com/damedic/fhir-toolbox-go/rest"
+	"github.com/damedic/fhir-toolbox-go/utils/ptr"
 	"net/http"
 	"net/http/httptest"
 	"testing"
