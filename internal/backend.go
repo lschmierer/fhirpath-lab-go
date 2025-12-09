@@ -239,7 +239,7 @@ type evalInputs struct {
 	expression string
 	context    string
 	resource   model.Resource
-	variables  map[string]fhirpath.Element
+	variables  map[string]fhirpath.Collection
 }
 
 type evalResult struct {
@@ -266,8 +266,9 @@ func evalFHIRPath[R model.Release](ctx context.Context, inputs evalInputs) evalR
 		ctx = r5.WithContext(ctx)
 	}
 
-	ctx = fhirpath.WithEnv(ctx, "resource", inputs.resource.(fhirpath.Element))
-	ctx = fhirpath.WithEnv(ctx, "rootResource", inputs.resource.(fhirpath.Element))
+	resourceElem := inputs.resource.(fhirpath.Element)
+	ctx = fhirpath.WithEnv(ctx, "resource", fhirpath.Collection{resourceElem})
+	ctx = fhirpath.WithEnv(ctx, "rootResource", fhirpath.Collection{resourceElem})
 
 	for name, value := range inputs.variables {
 		ctx = fhirpath.WithEnv(ctx, name, value)
@@ -421,7 +422,7 @@ func parseParameters[R model.Release](parameters fhirpath.Element) (evalInputs, 
 	}
 
 	// Extract variables
-	variables := make(map[string]fhirpath.Element)
+	variables := make(map[string]fhirpath.Collection)
 	if varsParam, ok := findParam("variables"); ok {
 		partsList := varsParam.Children("part")
 		for _, vp := range partsList {
@@ -437,7 +438,11 @@ func parseParameters[R model.Release](parameters fhirpath.Element) (evalInputs, 
 			if len(valueVal) == 0 {
 				continue
 			}
-			variables[string(nameStr)] = valueVal[0]
+			if collection, ok := any(valueVal[0]).(fhirpath.Collection); ok {
+				variables[string(nameStr)] = collection
+				continue
+			}
+			variables[string(nameStr)] = fhirpath.Collection{valueVal[0]}
 		}
 	}
 

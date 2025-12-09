@@ -76,12 +76,15 @@ func buildR4Parameters[R model.Release](result evalResult, inputs evalInputs) r4
 	if len(inputs.variables) > 0 {
 		varsParam := r4.ParametersParameter{Name: r4.String{Value: ptr.To("variables")}}
 		for name, value := range inputs.variables {
-			if valueStr, ok, _ := value.ToString(false); ok {
-				vs := string(valueStr)
-				varsParam.Part = append(varsParam.Part, r4.ParametersParameter{
-					Name:  r4.String{Value: &name},
-					Value: r4.String{Value: &vs},
-				})
+			nameCopy := name
+			for _, elem := range value {
+				if valueStr, ok, _ := elem.ToString(false); ok {
+					vs := string(valueStr)
+					varsParam.Part = append(varsParam.Part, r4.ParametersParameter{
+						Name:  r4.String{Value: &nameCopy},
+						Value: r4.String{Value: &vs},
+					})
+				}
 			}
 		}
 		paramsPart.Part = append(paramsPart.Part, varsParam)
@@ -200,12 +203,15 @@ func buildR4BParameters[R model.Release](result evalResult, inputs evalInputs) r
 	if len(inputs.variables) > 0 {
 		varsParam := r4b.ParametersParameter{Name: r4b.String{Value: ptr.To("variables")}}
 		for name, value := range inputs.variables {
-			if valueStr, ok, _ := value.ToString(false); ok {
-				vs := string(valueStr)
-				varsParam.Part = append(varsParam.Part, r4b.ParametersParameter{
-					Name:  r4b.String{Value: &name},
-					Value: r4b.String{Value: &vs},
-				})
+			nameCopy := name
+			for _, elem := range value {
+				if valueStr, ok, _ := elem.ToString(false); ok {
+					vs := string(valueStr)
+					varsParam.Part = append(varsParam.Part, r4b.ParametersParameter{
+						Name:  r4b.String{Value: &nameCopy},
+						Value: r4b.String{Value: &vs},
+					})
+				}
 			}
 		}
 		paramsPart.Part = append(paramsPart.Part, varsParam)
@@ -324,12 +330,15 @@ func buildR5Parameters[R model.Release](result evalResult, inputs evalInputs) r5
 	if len(inputs.variables) > 0 {
 		varsParam := r5.ParametersParameter{Name: r5.String{Value: ptr.To("variables")}}
 		for name, value := range inputs.variables {
-			if valueStr, ok, _ := value.ToString(false); ok {
-				vs := string(valueStr)
-				varsParam.Part = append(varsParam.Part, r5.ParametersParameter{
-					Name:  r5.String{Value: &name},
-					Value: r5.String{Value: &vs},
-				})
+			nameCopy := name
+			for _, elem := range value {
+				if valueStr, ok, _ := elem.ToString(false); ok {
+					vs := string(valueStr)
+					varsParam.Part = append(varsParam.Part, r5.ParametersParameter{
+						Name:  r5.String{Value: &nameCopy},
+						Value: r5.String{Value: &vs},
+					})
+				}
 			}
 		}
 		paramsPart.Part = append(paramsPart.Part, varsParam)

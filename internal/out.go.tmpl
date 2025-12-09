@@ -77,12 +77,15 @@ func build{{.Release}}Parameters[R model.Release](result evalResult, inputs eval
 	if len(inputs.variables) > 0 {
 		varsParam := {{.PackageName}}.ParametersParameter{Name: {{.PackageName}}.String{Value: ptr.To("variables")}}
 		for name, value := range inputs.variables {
-			if valueStr, ok, _ := value.ToString(false); ok {
-				vs := string(valueStr)
-				varsParam.Part = append(varsParam.Part, {{.PackageName}}.ParametersParameter{
-					Name:  {{.PackageName}}.String{Value: &name},
-					Value: {{.PackageName}}.String{Value: &vs},
-				})
+			nameCopy := name
+			for _, elem := range value {
+				if valueStr, ok, _ := elem.ToString(false); ok {
+					vs := string(valueStr)
+					varsParam.Part = append(varsParam.Part, {{.PackageName}}.ParametersParameter{
+						Name:  {{.PackageName}}.String{Value: &nameCopy},
+						Value: {{.PackageName}}.String{Value: &vs},
+					})
+				}
 			}
 		}
 		paramsPart.Part = append(paramsPart.Part, varsParam)
