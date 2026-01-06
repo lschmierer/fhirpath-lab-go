@@ -41,6 +41,7 @@ func corsAllowedOrigin(origin string) (string, bool) {
 	allowed := []string{
 		"https://fhirpath-lab.com",
 		"https://dev.fhirpath-lab.com",
+		"https://hackweek.fhirpath-lab.com",
 		"http://localhost:3000",
 	}
 	for _, a := range allowed {
