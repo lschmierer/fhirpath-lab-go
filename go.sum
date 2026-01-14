@@ -2,10 +2,8 @@ github.com/antlr4-go/antlr/v4 v4.13.1 h1:SqQKkuVZ+zWkMMNkjy5FZe5mr5WURWnlpmOuzYW
 github.com/antlr4-go/antlr/v4 v4.13.1/go.mod h1:GKmUxMtwp6ZgGwZSva4eWPC5mS6vUAmOABFgjdkM7Nw=
 github.com/cockroachdb/apd/v3 v3.2.1 h1:U+8j7t0axsIgvQUqthuNm82HIrYXodOV2iWLWtEaIwg=
 github.com/cockroachdb/apd/v3 v3.2.1/go.mod h1:klXJcjp+FffLTHlhIG69tezTDvdP065naDsHzKhYSqc=
-github.com/damedic/fhir-toolbox-go v0.0.0-20260108174851-387daaa7e25d h1:qFPoDOR0xFXiJlWKQKulVnGxFGEVidtmvqJ5NdLdi2s=
-github.com/damedic/fhir-toolbox-go v0.0.0-20260108174851-387daaa7e25d/go.mod h1:6LjsP8Ush8/UktmQhULei1TbAiPyUhURtnAj8PJYT5I=
-github.com/damedic/fhir-toolbox-go v0.0.0-20260114161327-d7dc38306ac9 h1:gIZi5b4yOM6HvZijsM+mBoiU7D5GY7FTozj1rCO+3JI=
-github.com/damedic/fhir-toolbox-go v0.0.0-20260114161327-d7dc38306ac9/go.mod h1:6LjsP8Ush8/UktmQhULei1TbAiPyUhURtnAj8PJYT5I=
+github.com/damedic/fhir-toolbox-go v0.0.0-20260114165836-49ae5197e836 h1:vomWCLHkvf1uOdrdX0hEfFqNV5rLn65P6u5wpW2nUY0=
+github.com/damedic/fhir-toolbox-go v0.0.0-20260114165836-49ae5197e836/go.mod h1:6LjsP8Ush8/UktmQhULei1TbAiPyUhURtnAj8PJYT5I=
 github.com/google/go-cmp v0.7.0 h1:wk8382ETsv4JYUZwIsn6YpYiWiBsYLSJiTsyBybVuN8=
 github.com/google/go-cmp v0.7.0/go.mod h1:pXiqmnSA92OHEEa9HXL2W4E7lf9JzCmGVUdgjX3N/iU=
 github.com/iimos/ucum v0.0.3 h1:nXmi4ZM9ITooXgzLbFg9lL/RcB8TLI91qmgGQ8XT56s=
@@ -14,5 +12,5 @@ github.com/iimos/ucum/ucumapd v0.0.1 h1:8Kwz4N8RbLzJVaGyffwLh7Iwq59LXy5rO0wAS9+G
 github.com/iimos/ucum/ucumapd v0.0.1/go.mod h1:vUdBulpCpSP8SAoyP7+382BfQfZEbbtE/Mbx2ZCZSCQ=
 github.com/lib/pq v1.10.7 h1:p7ZhMD+KsSRozJr34udlUrhboJwWAgCg34+/ZZNvZZw=
 github.com/lib/pq v1.10.7/go.mod h1:AlVN5x4E4T544tWzH6hKfbfQvm3HdbOxrmggDNAPY9o=
-golang.org/x/exp v0.0.0-20251219203646-944ab1f22d93 h1:fQsdNF2N+/YewlRZiricy4P1iimyPKZ/xwniHj8Q2a0=
-golang.org/x/exp v0.0.0-20251219203646-944ab1f22d93/go.mod h1:EPRbTFwzwjXj9NpYyyrvenVh9Y+GFeEvMNh7Xuz7xgU=
+golang.org/x/exp v0.0.0-20260112195511-716be5621a96 h1:Z/6YuSHTLOHfNFdb8zVZomZr7cqNgTJvA8+Qz75D8gU=
+golang.org/x/exp v0.0.0-20260112195511-716be5621a96/go.mod h1:nzimsREAkjBCIEFtHiYkrJyT+2uy9YZJB7H1k68CXZU=
