@@ -4,7 +4,7 @@ go 1.24.0
 
 toolchain go1.24.5
 
-require github.com/damedic/fhir-toolbox-go v0.0.0-20260108174851-387daaa7e25d
+require github.com/damedic/fhir-toolbox-go v0.0.0-20260114161327-d7dc38306ac9
 
 require (
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect

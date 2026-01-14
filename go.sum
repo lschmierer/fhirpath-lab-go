@@ -4,6 +4,8 @@ github.com/cockroachdb/apd/v3 v3.2.1 h1:U+8j7t0axsIgvQUqthuNm82HIrYXodOV2iWLWtEa
 github.com/cockroachdb/apd/v3 v3.2.1/go.mod h1:klXJcjp+FffLTHlhIG69tezTDvdP065naDsHzKhYSqc=
 github.com/damedic/fhir-toolbox-go v0.0.0-20260108174851-387daaa7e25d h1:qFPoDOR0xFXiJlWKQKulVnGxFGEVidtmvqJ5NdLdi2s=
 github.com/damedic/fhir-toolbox-go v0.0.0-20260108174851-387daaa7e25d/go.mod h1:6LjsP8Ush8/UktmQhULei1TbAiPyUhURtnAj8PJYT5I=
+github.com/damedic/fhir-toolbox-go v0.0.0-20260114161327-d7dc38306ac9 h1:gIZi5b4yOM6HvZijsM+mBoiU7D5GY7FTozj1rCO+3JI=
+github.com/damedic/fhir-toolbox-go v0.0.0-20260114161327-d7dc38306ac9/go.mod h1:6LjsP8Ush8/UktmQhULei1TbAiPyUhURtnAj8PJYT5I=
 github.com/google/go-cmp v0.7.0 h1:wk8382ETsv4JYUZwIsn6YpYiWiBsYLSJiTsyBybVuN8=
 github.com/google/go-cmp v0.7.0/go.mod h1:pXiqmnSA92OHEEa9HXL2W4E7lf9JzCmGVUdgjX3N/iU=
 github.com/iimos/ucum v0.0.3 h1:nXmi4ZM9ITooXgzLbFg9lL/RcB8TLI91qmgGQ8XT56s=
