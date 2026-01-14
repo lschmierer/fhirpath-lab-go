@@ -2,8 +2,9 @@ github.com/antlr4-go/antlr/v4 v4.13.1 h1:SqQKkuVZ+zWkMMNkjy5FZe5mr5WURWnlpmOuzYW
 github.com/antlr4-go/antlr/v4 v4.13.1/go.mod h1:GKmUxMtwp6ZgGwZSva4eWPC5mS6vUAmOABFgjdkM7Nw=
 github.com/cockroachdb/apd/v3 v3.2.1 h1:U+8j7t0axsIgvQUqthuNm82HIrYXodOV2iWLWtEaIwg=
 github.com/cockroachdb/apd/v3 v3.2.1/go.mod h1:klXJcjp+FffLTHlhIG69tezTDvdP065naDsHzKhYSqc=
-github.com/damedic/fhir-toolbox-go v0.0.0-20260114165836-49ae5197e836 h1:vomWCLHkvf1uOdrdX0hEfFqNV5rLn65P6u5wpW2nUY0=
 github.com/damedic/fhir-toolbox-go v0.0.0-20260114165836-49ae5197e836/go.mod h1:6LjsP8Ush8/UktmQhULei1TbAiPyUhURtnAj8PJYT5I=
+github.com/damedic/fhir-toolbox-go v0.0.0-20260114202146-96bfb296169f h1:V6n4+8xHqiMiw9hDBwSlHF6fn50eZgUL1JIbwkr2gGQ=
+github.com/damedic/fhir-toolbox-go v0.0.0-20260114202146-96bfb296169f/go.mod h1:6LjsP8Ush8/UktmQhULei1TbAiPyUhURtnAj8PJYT5I=
 github.com/google/go-cmp v0.7.0 h1:wk8382ETsv4JYUZwIsn6YpYiWiBsYLSJiTsyBybVuN8=
 github.com/google/go-cmp v0.7.0/go.mod h1:pXiqmnSA92OHEEa9HXL2W4E7lf9JzCmGVUdgjX3N/iU=
 github.com/iimos/ucum v0.0.3 h1:nXmi4ZM9ITooXgzLbFg9lL/RcB8TLI91qmgGQ8XT56s=
